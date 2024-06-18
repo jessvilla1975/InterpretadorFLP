@@ -281,110 +281,20 @@
 
 ;***********************primitivas************************************************
 ; funcion para aplicar primitivas numericas
-(require racket/string)
-
 (define apply-primitive
   (lambda (prim args)
     (cases primitiva prim
-      (sum-prim () (sumbinarios (car args) (cadr args)))
+      (sum-prim () (+ (car args) (cadr args)))
       (minus-prim () (- (car args) (cadr args)))
       (mult-prim () (* (car args) (cadr args)))
       (menor-prim () (< (car args) (cadr args)))
       (mayor-prim () (> (car args) (cadr args)))
+
+     
     )
-  )
-)
-
-(define sumbinarios
-  (lambda (arg1 arg2)
-    (cond
-      ((and (string? arg1) (string? arg2)) (sumar-binarios arg1 arg2))
-      (else (eopl:error 'sumbinarios "Los argumentos deben ser números o cadenas"))
-    )
-  )
-)
-
-(define sumar-binarios
-  (lambda (bin1 bin2)
-    (let* ((valor1 (string->number (substring bin1 1 (string-length bin1)) 2))
-           (valor2 (string->number (substring bin2 1 (string-length bin2)) 2))
-           (suma (+ valor1 valor2))
-           (longitud-max (max (string-length bin1) (string-length bin2)))
-           (suma-cadena (string-pad (number->string suma 2) longitud-max #\0))
-           (prefijo (if (and (string-prefix? "-" bin1) (string-prefix? "-" bin2)) "-" "")))
-      (string-append prefijo "b" suma-cadena)
-    )
-  )
-)
+))
 
 
-
-
-(define sumar-octales
-  (lambda (oct1 oct2)
-    (let ((valor1 (string->number (substring oct1 1 (string-length oct1)) 8))
-          (valor2 (string->number (substring oct2 1 (string-length oct2)) 8)))
-      (string-append "0" (number->string (+ valor1 valor2) 8))
-    )
-  )
-)
-
-(define sumar-hexadecimales
-  (lambda (hex1 hex2)
-    (let ((valor1 (string->number (substring hex1 2 (string-length hex1)) 16))
-          (valor2 (string->number (substring hex2 2 (string-length hex2)) 16)))
-      (string-append "hx" (number->string (+ valor1 valor2) 16))
-    )
-  )
-)
-
-(define sumar-decimales
-  (lambda (dec1 dec2)
-    (let ((valor1 (string->number dec1))
-          (valor2 (string->number dec2)))
-      (number->string (+ valor1 valor2))
-    )
-  )
-)
-
-(define sumar-strings
-  (lambda (str1 str2)
-    (let ((tipo1 (detectar-tipo str1))
-          (tipo2 (detectar-tipo str2)))
-      (cond
-        ((and (eq? tipo1 'binario) (eq? tipo2 'binario)) (sumbinarios str1 str2))
-        ((and (eq? tipo1 'octal) (eq? tipo2 'octal)) (sumar-octales str1 str2))
-        ((and (eq? tipo1 'hexadecimal) (eq? tipo2 'hexadecimal)) (sumar-hexadecimales str1 str2))
-        ((and (eq? tipo1 'decimal) (eq? tipo2 'decimal)) (sumar-decimales str1 str2))
-        (else (eopl:error 'sumar-strings "Los tipos de los argumentos no coinciden"))
-      )
-    )
-  )
-)
-
-(define detectar-tipo
-  (lambda (str)
-    (cond
-      ((string=? str "") (eopl:error 'detectar-tipo "Cadena vacía no es un tipo válido"))
-      ((string-prefix? "-b" str) 'binario-negativo)
-      ((string-prefix? "b" str) 'binario)
-      ((string-prefix? "-0" str) 'octal-negativo)
-      ((string-prefix? "0" str) 'octal)
-      ((string-prefix? "-hx" str) 'hexadecimal-negativo)
-      ((string-prefix? "hx" str) 'hexadecimal)
-      ((char=? (string-ref str 0) #\-) 'decimal-negativo)
-      ((char-numeric? (string-ref str 0)) 'decimal)
-      (else (eopl:error 'detectar-tipo "Tipo de argumento no reconocido"))
-    )
-  )
-)
-
-(define string-pad
-  (lambda (str len pad)
-    (let ((str-len (string-length str)))
-      (if (>= str-len len)
-          str
-          (string-pad (string-append (make-string (- len str-len) pad) str) len pad)))))
 
 
 (define apply-primitive-bool
