@@ -203,9 +203,10 @@
   (lambda (exp env)
     (cases expresion exp
       ; Expresiones de la gramática
+      (num-exp (numero-exp) (eval-num-expresion numero-exp env))
       (bool-exp (bool-expresion) (eval-bool-expresion bool-expresion env))
       (var-exp (identificador) (apply-env env identificador))
-      (num-exp (numero-exp) (eval-num-expresion numero-exp env))
+      
       (cadena-exp (id args) (create-cadena-exp id args))
 
       ;Listas
@@ -221,9 +222,6 @@
                   (eval-expression true-exp env)
                   (eval-expression false-exp env)))
 
-      
-
-      ;Variables
       (decl-exp (var-decl) (eval-var-decl var-decl env))
 
       
@@ -259,6 +257,7 @@
       (bin-num (digitoBinario) digitoBinario)
       (hex-num (digitoHexadecimal) digitoHexadecimal)
       (float-num (flotante) flotante)
+      
     )
   )
 )
@@ -546,13 +545,11 @@
           (for-each
             (lambda (pos ids body)
               (vector-set! vec pos (closure ids body env)))
-            (iota len) idss bodies)
+            (mayor len) idss bodies)
           env)))))
 
 
-;iota: number -> list
-;función que retorna una lista de los números desde 0 hasta end
-(define iota
+(define mayor
   (lambda (end)
     (let loop ((next 0))
       (if (>= next end) '()
