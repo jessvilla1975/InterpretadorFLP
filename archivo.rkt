@@ -202,53 +202,28 @@
 (define eval-expression
   (lambda (exp env)
     (cases expresion exp
-      ; Expresiones de la gramática
       (num-exp (numero-exp) (eval-num-expresion numero-exp env))
       (bool-exp (bool-expresion) (eval-bool-expresion bool-expresion env))
       (var-exp (identificador) (apply-env env identificador))
-      
-      (cadena-exp (id args) (create-cadena-exp id args))
-
-      ;Listas
-      (lista-exp (args) 
-        (map (lambda (x) (eval-expression x env)) args))
-      (cons-exp (exp1 exp2) 
-        (cons (eval-expression exp1 env) (eval-expression exp2 env)))
+      (cadena-exp (identificador args) (eval-cadena-expresion identificador args))
+      (lista-exp (args) (map (lambda (x) (eval-expression x env)) args))
+      (cons-exp (exp1 exp2) (cons (eval-expression exp1 env) (eval-expression exp2 env)))
       (empty-list-exp () '())
-
-      ;Condicionales
-      (if-exp (test-exp true-exp false-exp)
-              (if (eval-expression test-exp env)
-                  (eval-expression true-exp env)
-                  (eval-expression false-exp env)))
+      (if-exp (exp1 exp2 exp3)
+              (if (eval-expression exp1 env)
+                  (eval-expression exp2 env)
+                  (eval-expression exp3 env)))
 
       (decl-exp (var-decl) (eval-var-decl var-decl env))
-
-      
-
-      ;Primitivas
-      (prim-num-exp (exp1 primitiva exp2)
-        (apply-primitive primitiva (list (eval-expression exp1 env) (eval-expression exp2 env))))
-      (prim-bool-exp (primitivaBooleana args) 
-        (apply-primitive-bool primitivaBooleana (eval-rands args env)))
+      (prim-num-exp (exp1 primitiva exp2)(apply-primitive primitiva (list (eval-expression exp1 env) (eval-expression exp2 env))))
+      (prim-bool-exp (primitivaBooleana args) (apply-primitive-bool primitivaBooleana (eval-rands args env)))
       (prim-cad-exp (primitivaCadena args) (apply-primitive-cad primitivaCadena (eval-rands args env)))
       (prim-list-exp (primitivaListas arg) (apply-primitive-list primitivaListas (eval-rand arg env)))
     )
   )
 )
 
-; funciones auxiliares para evaluar expresiones
-;Evaluar expresiones booleanas
-(define eval-bool-expresion
-  (lambda (exp env)
-    (cases bool-expresion exp
-      (true-exp () #t)
-      (false-exp () #f)
-    )
-  )
-)
-
-;Evaluar expresiones numéricas
+;************************funciones del eval***************************
 (define eval-num-expresion
   (lambda (exp env)
     (cases numero-exp exp
@@ -257,12 +232,40 @@
       (bin-num (digitoBinario) digitoBinario)
       (hex-num (digitoHexadecimal) digitoHexadecimal)
       (float-num (flotante) flotante)
+      (else (eopl:error 'eval-num-expresion "Numero invalido"))
+    )
+  )
+)
+
+(define eval-bool-expresion
+  (lambda (exp env)
+    (cases bool-expresion exp
+      (true-exp () #t)
+      (false-exp () #f)
+      (else (eopl:error 'eval-bool-expresion "Booleano invalido"))
       
     )
   )
 )
 
-;Evaluar declaraciones de variables
+(define eval-cadena-expresion
+  (lambda (identificador args)
+    (let* ((cadena-id (symbol->string identificador))
+           (cadenas-args (map symbol->string args)))
+      (unir-cadenas (cons cadena-id cadenas-args) " "))))
+
+(define unir-cadenas
+  (lambda (lista sym)
+    (define (unir lista)
+      (if (null? lista)
+          ""
+          (let ((resto (unir (cdr lista))))
+            (if (string=? resto "")
+                (car lista)
+                (string-append (car lista) sym resto)))))
+    (unir lista)))
+
+
 (define eval-var-decl
   (lambda (exp env)
     (cases var-decl exp
@@ -421,41 +424,20 @@
 
 
 
-(define create-cadena-exp
-  (lambda (id args)
-    (let 
-      (
-        (str-id (symbol->string id))
-        (str-args (map symbol->string args))
-      )
-      (unir-cadenas (cons str-id str-args) " ")
-    )
-  )
-)
 
-(define unir-cadenas
-  (lambda (lista sym)
-    (define (unir lista)
-      (if (null? lista)
-          ""
-          (let ((resto (unir (cdr lista))))
-            (if (string=? resto "")
-                (car lista)
-                (string-append (car lista) sym resto)))))
-    (unir lista)))
     
-;Aplicar primitivas de cadenas
+
 (define apply-primitive-cad
   (lambda (prim args)
     (cases primitivaCadena prim
       (concat-primCad () (unir-cadenas args ""))
       (length-primCad () (string-length (car args)))
-      (index-primCad () (string-ref (car args) (car (cdr args)))) ; obtener el caracter dado un indice
+      (index-primCad () (string-ref (car args) (car (cdr args)))) 
     )
   )
 )
 
-;Aplicar primitivas de listas
+
 (define apply-primitive-list
   (lambda (prim args)
     (cases primitivaListas prim
@@ -467,11 +449,6 @@
 )
 
 
-
-
-
-; funciones auxiliares para aplicar eval-expression a cada elemento de una 
-; lista de operandos (expresiones)
 (define eval-rands
   (lambda (rands env)
     (map (lambda (x) (eval-rand x env)) rands)))
@@ -480,7 +457,6 @@
   (lambda (rand env)
     (eval-expression rand env)))
 
-;operation: Aplicar una operación a la lista
 
 (define operation
   (lambda (lst f acc)
@@ -489,8 +465,6 @@
       [else
         (operation (cdr lst) f (f acc (car lst) ))])))
 
-
-;true-value?: determina si un valor dado corresponde a un valor booleano falso o verdadero
 (define true-value?
   (lambda (x)
     (not (zero? x))))
@@ -522,21 +496,18 @@
 
 (define scheme-value? (lambda (v) #t))
 
-;empty-env:      -> enviroment
-;función que crea un ambiente vacío
+
 (define empty-env  
   (lambda ()
-    (empty-env-record)))       ;llamado al constructor de ambiente vacío 
+    (empty-env-record)))    
 
 
-;extend-env: <list-of symbols> <list-of numbers> enviroment -> enviroment
-;función que crea un ambiente extendido
+
 (define extend-env
   (lambda (syms vals env)
     (extended-env-record syms (list->vector vals) env)))
 
-;extend-env-recursively: <list-of symbols> <list-of <list-of symbols>> <list-of expressions> environment -> environment
-;función que crea un ambiente extendido para procedimientos recursivos
+
 (define extend-env-recursively
   (lambda (proc-names idss bodies old-env)
     (let ((len (length proc-names)))
@@ -555,7 +526,7 @@
       (if (>= next end) '()
         (cons next (loop (+ 1 next)))))))
 
-;función que busca un símbolo en un ambiente
+
 (define apply-env
   (lambda (env sym)
     (deref (apply-env-ref env sym))))
@@ -572,7 +543,6 @@
                                  (apply-env-ref env sym)))))))
 
 
-;Referencias
 
 (define-datatype reference reference?
   (a-ref (position integer?)
@@ -598,10 +568,7 @@
       (a-ref (pos vec)
              (vector-set! vec pos val)))))
 
-;Funciones Auxiliares
 
-; funciones auxiliares para encontrar la posición de un símbolo
-; en la lista de símbolos de un ambiente
 
 (define rib-find-position 
   (lambda (sym los)
@@ -621,7 +588,7 @@
                 (+ list-index-r 1)
                 #f))))))
 
-;Interpretador
+
 ;(interpretador)
 
 (provide (all-defined-out))
