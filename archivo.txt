@@ -97,12 +97,12 @@
 
     ;;primitivas numéricas
     (primitiva ("+") sum-prim)
-    (primitiva ("-") minus-prim)
-    (primitiva ("*") mult-prim)
+    ;(primitiva ("-") minus-prim)
+    ;(primitiva ("*") mult-prim)
     ;(primitiva ("mod") mod-prim)
     ;(primitiva ("pow") elevar-prim)
-    (primitiva ("<") menor-prim)
-    (primitiva (">") mayor-prim)
+    ;(primitiva ("<") menor-prim)
+    ;(primitiva (">") mayor-prim)
     ;(primitiva ("<=") menorigual-prim)
     ;(primitiva (">=") mayorigual-prim)
     ;(primitiva ("!=") diferente-prim)
@@ -284,15 +284,18 @@
 (define apply-primitive
   (lambda (prim args)
     (cases primitiva prim
-      (sum-prim () (+ (car args) (cadr args)))
-      (minus-prim () (- (car args) (cadr args)))
-      (mult-prim () (* (car args) (cadr args)))
-      (menor-prim () (< (car args) (cadr args)))
-      (mayor-prim () (> (car args) (cadr args)))
-
-     
+      (sum-prim () (suma args +))
+      ;(minus-prim () (operaciones args -))
+      ;(mult-prim () (operaciones args *))
+      ;(menor-prim () (operaciones args <))
+      ;(mayor-prim () (operaciones args >))
     )
-))
+  )
+)
+
+
+
+
 
 
 
@@ -485,6 +488,14 @@
                 (+ list-index-r 1)
                 #f))))))
 
+
+;************************pruebas simples************************************
+;(display (show-the-datatypes))
+;(display (eval-program (scan&parse "123")))
+;(display (eval-program (scan&parse "-123")))
+;(display (eval-program (scan&parse "true")))
+;(display (eval-program (scan&parse "false")))
+;(display (eval-program (scan&parse "\"hola\"")))
 
 ;(interpretador)
 
