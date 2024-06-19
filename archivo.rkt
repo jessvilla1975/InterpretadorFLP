@@ -10,7 +10,7 @@
   (digitoBinario
    ("b" (or "0" "1") (arbno (or "0" "1"))) string)
   (digitoBinario
-   ("-" "b" (or "0" "1") (arbno (or "0" "1"))) string)
+   ("-?" "b" (or "0" "1") (arbno (or "0" "1"))) string)
   (digitoDecimal
    (digit (arbno digit)) number)
   (digitoDecimal
@@ -22,7 +22,7 @@
   (digitoHexadecimal
    ("hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string)
   (digitoHexadecimal
-   ("-" "hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string) 
+   ("-?" "hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string)
   (flotante
    (digit (arbno digit) "." digit (arbno digit)) number)
   (flotante
@@ -280,113 +280,136 @@
 )
 
 ;***********************primitivas************************************************
-; funcion para aplicar primitivas numericas
-(require racket/string)
 
 (define apply-primitive
   (lambda (prim args)
     (cases primitiva prim
-      (sum-prim () (sumbinarios (car args) (cadr args)))
-      (minus-prim () (- (car args) (cadr args)))
-      (mult-prim () (* (car args) (cadr args)))
-      (menor-prim () (< (car args) (cadr args)))
-      (mayor-prim () (> (car args) (cadr args)))
+      (sum-prim () (operaciones args +))
+      (minus-prim () (operaciones args -))
+      (mult-prim () (operaciones args *))
+      ;(mod-prim () (operaciones args modulo))
+      ;(elevar-prim () (operaciones args expt))
+      (menor-prim () (operaciones args <))
+      (mayor-prim () (operaciones args >))
+      ;(menorigual-prim () (operaciones args <=))
+      ;(mayorigual-prim () (operaciones args >=))
+      ;(diferente-prim () (operaciones args (lambda (x y) (not (= x y)))))
+      ;(igual-prim () (operaciones args =))
     )
   )
 )
 
-(define sumbinarios
-  (lambda (arg1 arg2)
+
+(define (operaciones args operation)
+  (cond ((and (number? (car args)) (number? (cadr args)))
+         (operation (car args) (cadr args)))
+        ((and (string? (car args)) (string? (cadr args)))
+         (let ((operand1BaseInfo (tipoBase (car args)))
+               (operand2BaseInfo (tipoBase (cadr args))))
+           (cond ((= (cadr operand1BaseInfo) (cadr operand2BaseInfo))  ; Check for matching bases
+                  (let ((result (operation
+                                 (ConvertirBase-Decimal (car operand1BaseInfo) (cadr operand1BaseInfo))
+                                 (ConvertirBase-Decimal (car operand2BaseInfo) (cadr operand2BaseInfo)))))
+                    (string-append
+                     (if (< result 0) "-" "")
+                     (tipoString (cadr operand1BaseInfo))
+                     (convertirDecimal-Base (abs result) (cadr operand1BaseInfo)))))
+                 (else (eopl:error "Bases diferentes no se pueden operar")))))
+        (else (eopl:error "Operandos no válidos"))))
+
+
+
+
+
+(define tipoBase
+  (lambda (num)
     (cond
-      ((and (string? arg1) (string? arg2)) (sumar-binarios arg1 arg2))
-      (else (eopl:error 'sumbinarios "Los argumentos deben ser números o cadenas"))
-    )
-  )
-)
-
-(define sumar-binarios
-  (lambda (bin1 bin2)
-    (let* ((valor1 (string->number (substring bin1 1 (string-length bin1)) 2))
-           (valor2 (string->number (substring bin2 1 (string-length bin2)) 2))
-           (suma (+ valor1 valor2))
-           (longitud-max (max (string-length bin1) (string-length bin2)))
-           (suma-cadena (string-pad (number->string suma 2) longitud-max #\0))
-           (prefijo (if (and (string-prefix? "-" bin1) (string-prefix? "-" bin2)) "-" "")))
-      (string-append prefijo "b" suma-cadena)
-    )
-  )
-)
-
-
-
-
-(define sumar-octales
-  (lambda (oct1 oct2)
-    (let ((valor1 (string->number (substring oct1 1 (string-length oct1)) 8))
-          (valor2 (string->number (substring oct2 1 (string-length oct2)) 8)))
-      (string-append "0" (number->string (+ valor1 valor2) 8))
-    )
-  )
-)
-
-(define sumar-hexadecimales
-  (lambda (hex1 hex2)
-    (let ((valor1 (string->number (substring hex1 2 (string-length hex1)) 16))
-          (valor2 (string->number (substring hex2 2 (string-length hex2)) 16)))
-      (string-append "hx" (number->string (+ valor1 valor2) 16))
-    )
-  )
-)
-
-(define sumar-decimales
-  (lambda (dec1 dec2)
-    (let ((valor1 (string->number dec1))
-          (valor2 (string->number dec2)))
-      (number->string (+ valor1 valor2))
-    )
-  )
-)
-
-(define sumar-strings
-  (lambda (str1 str2)
-    (let ((tipo1 (detectar-tipo str1))
-          (tipo2 (detectar-tipo str2)))
-      (cond
-        ((and (eq? tipo1 'binario) (eq? tipo2 'binario)) (sumbinarios str1 str2))
-        ((and (eq? tipo1 'octal) (eq? tipo2 'octal)) (sumar-octales str1 str2))
-        ((and (eq? tipo1 'hexadecimal) (eq? tipo2 'hexadecimal)) (sumar-hexadecimales str1 str2))
-        ((and (eq? tipo1 'decimal) (eq? tipo2 'decimal)) (sumar-decimales str1 str2))
-        (else (eopl:error 'sumar-strings "Los tipos de los argumentos no coinciden"))
+      [(string=? (substring num 0 1) "-")
+       (cond
+         [(string=? (substring num 1 2) "b")
+          (list (string-append "-" (substring num 2)) 2)]
+         [(string=? (substring num 1 3) "0x")
+          (list (string-append "-" (substring num 3)) 8)]
+         [(string=? (substring num 1 3) "hx")
+          (list (string-append "-" (substring num 3)) 16)]
+         )]
+      [(string=? (substring num 0 1) "b")
+       (list (substring num 1) 2)]
+      [(string=? (substring num 0 2) "0x")
+       (list (substring num 2) 8)]
+      [(string=? (substring num 0 2) "hx")
+       (list (substring num 2) 16)]
       )
     )
   )
-)
-
-(define detectar-tipo
-  (lambda (str)
-    (cond
-      ((string=? str "") (eopl:error 'detectar-tipo "Cadena vacía no es un tipo válido"))
-      ((string-prefix? "-b" str) 'binario-negativo)
-      ((string-prefix? "b" str) 'binario)
-      ((string-prefix? "-0" str) 'octal-negativo)
-      ((string-prefix? "0" str) 'octal)
-      ((string-prefix? "-hx" str) 'hexadecimal-negativo)
-      ((string-prefix? "hx" str) 'hexadecimal)
-      ((char=? (string-ref str 0) #\-) 'decimal-negativo)
-      ((char-numeric? (string-ref str 0)) 'decimal)
-      (else (eopl:error 'detectar-tipo "Tipo de argumento no reconocido"))
-    )
-  )
-)
-
-(define string-pad
-  (lambda (str len pad)
-    (let ((str-len (string-length str)))
-      (if (>= str-len len)
-          str
-          (string-pad (string-append (make-string (- len str-len) pad) str) len pad)))))
 
 
+
+(define (tipoString n)
+  (cond
+    [(equal? n 2) "b"]
+    [(equal? n 8) "0x"]
+    [(equal? n 16) "hx"]
+    [else ""]))
+
+
+(define (convertirDecimal-Base n x)
+  (define (digit i)
+    (cond [(< i 10) (integer->char (+ i 48))]
+          [(<= i 35) (integer->char (+ i 55))]
+          [else #\?]))
+  
+  (define (get-digit n)
+    (let ((remainder (remainder n x)))
+      (if (< remainder 10)
+          (integer->char (+ remainder 48))
+          (integer->char (+ remainder 55)))))
+  
+  (let ((sign (if (< n 0) "-" "")))
+    (cond [(< (abs n) x)
+           (string (get-digit (abs n)))]
+          [else
+           (string-append
+             sign
+             (convertirDecimal-Base(quotient (abs n) x) x)
+             (string (get-digit (remainder (abs n) x))))])))
+
+
+
+
+(define (BuscarString str char [acc 0])
+  (cond
+    [(= (string-length str) 0) (eopl:error "No hay string")]
+    [(char=? (string-ref str 0) char) acc]
+    [else (BuscarString (substring str 1 (string-length str)) char (+ acc 1))]
+  ))
+  
+(define (ConvertirBase-Decimal s x)
+
+  (let ((sign (cond ((string=? (substring s 0 1) "-") -1)
+                    (else 1)))
+        (s (substring s (if (string=? (substring s 0 1) "-") 1 0)
+                      (string-length s))))
+    (* sign (get-number s x))))
+
+(define (get-number s base)
+  (cond
+    [(zero? (string-length s)) 0]
+    [else (let* ((digit (char->integer (string-ref s (- (string-length s) 1))))
+                 (digit-value (cond
+                                [(and (>= digit (char->integer #\0)) (<= digit (char->integer #\9)))
+                                 (- digit (char->integer #\0))]
+                                [(and (>= digit (char->integer #\A)) (<= digit (char->integer #\F)))
+                                 (+ (- digit (char->integer #\A)) 10)]
+                                [else 0])))
+            (+ (* base (get-number (substring s 0 (- (string-length s) 1)) base))
+               digit-value))]))
+
+
+
+
+
+;**********************primitiva bool********************
 (define apply-primitive-bool
   (lambda (prim args)
     (cases primitivaBooleana prim
@@ -575,6 +598,7 @@
               (if (number? list-index-r)
                 (+ list-index-r 1)
                 #f))))))
+;************************pruebas simples****************************
 
 
 ;(interpretador)

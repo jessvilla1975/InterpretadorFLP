@@ -10,7 +10,7 @@
   (digitoBinario
    ("b" (or "0" "1") (arbno (or "0" "1"))) string)
   (digitoBinario
-   ("-" "b" (or "0" "1") (arbno (or "0" "1"))) string)
+   ("-?" "b" (or "0" "1") (arbno (or "0" "1"))) string)
   (digitoDecimal
    (digit (arbno digit)) number)
   (digitoDecimal
@@ -22,7 +22,7 @@
   (digitoHexadecimal
    ("hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string)
   (digitoHexadecimal
-   ("-" "hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string) 
+   ("-?" "hx" (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F") (arbno (or "0" "1" "2" "3" "4" "5" "6" "7" "8" "9" "A" "B" "C" "D" "E" "F"))) string)
   (flotante
    (digit (arbno digit) "." digit (arbno digit)) number)
   (flotante
@@ -281,22 +281,103 @@
 
 ;***********************primitivas************************************************
 ; funcion para aplicar primitivas numericas
+
+(require racket/string)
+
+
 (define apply-primitive
   (lambda (prim args)
     (cases primitiva prim
-      (sum-prim () (+ (car args) (cadr args)))
+      (sum-prim () (sumar-valores  (car args) (cadr args)))
       (minus-prim () (- (car args) (cadr args)))
       (mult-prim () (* (car args) (cadr args)))
       (menor-prim () (< (car args) (cadr args)))
       (mayor-prim () (> (car args) (cadr args)))
+    )
+  )
+)
+
+
+(define (sumar-valores val1 val2)
+  (cond
+    ((and (string? val1) (string? val2)) (sumar-strings val1 val2))
+    ((and (number? val1) (number? val2)) (+ val1 val2))
+    (else (eopl:error 'sumar-valores "Los argumentos deben ser números o cadenas"))))
+
+(define (sumar-strings str1 str2)
+  (let ((tipo1 (detectar-tipo str1))
+        (tipo2 (detectar-tipo str2)))
+    (cond
+      ((and (eq? tipo1 'binario) (eq? tipo2 'binario)) (sumar-binarios str1 str2))
+      ((and (eq? tipo1 'octal) (eq? tipo2 'octal)) (sumar-octales str1 str2))
+      ((and (eq? tipo1 'hexadecimal) (eq? tipo2 'hexadecimal)) (sumar-hexadecimales str1 str2))
+      ((and (eq? tipo1 'decimal) (eq? tipo2 'decimal)) (sumar-decimales str1 str2))
+      (else (eopl:error 'sumar-strings "Los tipos de los argumentos no coinciden")))))
+
+(define sumar-binarios
+  (lambda (bin1 bin2)
+    (let* ((valor1 (string->number (substring bin1 1 (string-length bin1)) 2))
+           (valor2 (string->number (substring bin2 1 (string-length bin2)) 2))
+           (suma (+ valor1 valor2))
+           (suma-cadena (number->string suma 2))
+           (prefijo (if (and (string-prefix? "-" bin1) (string-prefix? "-" bin2)) "-" "")))
+      (string-append prefijo "b" suma-cadena)
+    )
+  )
+)
 
      
+
+(define sumar-decimales
+  (lambda (dec1 dec2)
+    (let ((valor1 (string->number dec1))
+          (valor2 (string->number dec2)))
+      (number->string (+ valor1 valor2))
     )
-))
+  )
+)    
+
+(define (sumar-octales oct1 oct2)
+  (let ((valor1 (string->number (substring oct1 (if (string-prefix? "-" oct1) 2 1) (string-length oct1)) 8))
+        (valor2 (string->number (substring oct2 (if (string-prefix? "-" oct2) 2 1) (string-length oct2)) 8)))
+    (string-append (if (and (string-prefix? "-" oct1) (string-prefix? "-" oct2)) "-" "")
+                   "0"
+                   (number->string (abs (+ valor1 valor2)) 8))))
+
+(define (sumar-hexadecimales hex1 hex2)
+  (let ((valor1 (string->number (substring hex1 (if (string-prefix? "-" hex1) 3 2) (string-length hex1)) 16))
+        (valor2 (string->number (substring hex2 (if (string-prefix? "-" hex2) 3 2) (string-length hex2)) 16)))
+    (string-append (if (and (string-prefix? "-" hex1) (string-prefix? "-" hex2)) "-" "")
+                   "hx"
+                   (number->string (abs (+ valor1 valor2)) 16))))
+
+(define detectar-tipo
+  (lambda (str)
+    (cond
+      ((string=? str "") (eopl:error 'detectar-tipo "Cadena vacía no es un tipo válido"))
+      ((string-prefix? "-b" str) 'binario-negativo)
+      ((string-prefix? "b" str) 'binario)
+      ((string-prefix? "-0" str) 'octal-negativo)
+      ((string-prefix? "0" str) 'octal)
+      ((string-prefix? "-hx" str) 'hexadecimal-negativo)
+      ((string-prefix? "hx" str) 'hexadecimal)
+      ((char=? (string-ref str 0) #\-) 'decimal-negativo)
+      ((and (char-numeric? (string-ref str 0)) (not (string-prefix? "b" str)) (not (string-prefix? "0" str)) (not (string-prefix? "hx" str))) 'decimal)
+      (else (eopl:error 'detectar-tipo "Tipo de argumento no reconocido"))
+    )
+  )
+)
+(define (string-pad str len pad)
+  (let ((str-len (string-length str)))
+    (if (>= str-len len)
+        str
+        (string-append (make-string (- len str-len) pad) str))))
 
 
 
 
+
+;**********************primitiva bool********************
 (define apply-primitive-bool
   (lambda (prim args)
     (cases primitivaBooleana prim
