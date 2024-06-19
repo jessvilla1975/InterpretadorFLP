@@ -11,9 +11,7 @@
     "
   )
 )
-(define expected-exp1
-  #f
-)
+
 
 ; tets 2
 (define exp2
@@ -23,9 +21,7 @@
     "
   )
 )
-(define expected-exp2
-  #t
-)
+
 
 ; test 3
 (define exp3
@@ -35,9 +31,7 @@
     "
   )
 )
-(define expected-exp3
-  #f
-)
+
 
 ; test 4
 (define exp4
@@ -47,15 +41,11 @@
     "
   )
 )
-(define expected-exp4
-  #t
-)
 
-
-(check-equal? (eval-program exp1) expected-exp1)
-(check-equal? (eval-program exp2) expected-exp2)
-(check-equal? (eval-program exp3) expected-exp3)
-(check-equal? (eval-program exp4) expected-exp4)
+(check-equal? (eval-program exp1) #f)
+(check-equal? (eval-program exp2) #t)
+(check-equal? (eval-program exp3) #f)
+(check-equal? (eval-program exp4) #t)
 
 
 

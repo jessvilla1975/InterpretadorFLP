@@ -42,7 +42,7 @@
     (expresion ("list" "(" (separated-list expresion ",") ")") lista-exp)
     (expresion ("cons" "(" expresion expresion ")") cons-exp)
     (expresion ("empty") empty-list-exp)
-    ;;; (expresion ("array" "(" (separated-list expresion ",") ")") array-exp)
+    (expresion ("array" "(" (separated-list expresion ",") ")") array-exp)
 
     ;;Expresion primitivas
     ;;Primitiva numerica
@@ -52,7 +52,7 @@
     ;;Primitiva listas
     (expresion (primitivaListas "(" expresion ")") prim-list-exp)
     ;;; ;;Primitiva array
-    ;;; (expresion (primitivaArray "(" (separated-list expresion ",") ")") prim-array-exp)
+    (expresion (primitivaArray "(" (separated-list expresion ",") ")") prim-array-exp)
     ;;Primitiva de cadenas
     (expresion (primitivaCadena "(" (separated-list expresion ",") ")") prim-cad-exp)
 
@@ -99,14 +99,14 @@
     (primitiva ("+") sum-prim)
     (primitiva ("-") minus-prim)
     (primitiva ("*") mult-prim)
-    ;(primitiva ("mod") mod-prim)
-    ;(primitiva ("pow") elevar-prim)
+    (primitiva ("mod") mod-prim)
+    (primitiva ("pow") elevar-prim)
     (primitiva ("<") menor-prim)
     (primitiva (">") mayor-prim)
-    ;(primitiva ("<=") menorigual-prim)
-    ;(primitiva (">=") mayorigual-prim)
-    ;(primitiva ("!=") diferente-prim)
-    ;(primitiva ("==") igual-prim)
+    (primitiva ("<=") menorigual-prim)
+    (primitiva (">=") mayorigual-prim)
+    (primitiva ("!=") diferente-prim)
+    (primitiva ("==") igual-prim)
 
     ;;primitiva booleana
     (primitivaBooleana ("and") and-prim)
@@ -120,10 +120,10 @@
     (primitivaListas ("empty?") empty-primList)
 
     ;;Primitiva arrays
-    ;;; (primitivaArray ("length") length-primArr)
-    ;;; (primitivaArray ("index") index-primArr)
-    ;;; (primitivaArray ("slice") slice-primArr)
-    ;;; (primitivaArray ("setlist") setlist-primArr)
+    (primitivaArray ("length") length-primArr)
+    (primitivaArray ("index") index-primArr)
+    (primitivaArray ("slice") slice-primArr)
+    (primitivaArray ("setlist") setlist-primArr)
 
     ;;Primitiva cadenas
     (primitivaCadena ("concat") concat-primCad)
@@ -209,6 +209,7 @@
       (lista-exp (args) (map (lambda (x) (eval-expression x env)) args))
       (cons-exp (exp1 exp2) (cons (eval-expression exp1 env) (eval-expression exp2 env)))
       (empty-list-exp () '())
+      
       (if-exp (exp1 exp2 exp3)
               (if (eval-expression exp1 env)
                   (eval-expression exp2 env)
@@ -217,8 +218,11 @@
       (decl-exp (var-decl) (eval-var-decl var-decl env))
       (prim-num-exp (exp1 primitiva exp2)(apply-primitive primitiva (list (eval-expression exp1 env) (eval-expression exp2 env))))
       (prim-bool-exp (primitivaBooleana args) (apply-primitive-bool primitivaBooleana (eval-rands args env)))
-      (prim-cad-exp (primitivaCadena args) (apply-primitive-cad primitivaCadena (eval-rands args env)))
+      (prim-cad-exp (primitivaCadena args) (apply-primitive-string primitivaCadena (eval-rands args env)))
       (prim-list-exp (primitivaListas arg) (apply-primitive-list primitivaListas (eval-rand arg env)))
+      (array-exp (lista) (list->vector (eval-rands lista env)))
+      (prim-array-exp (primitiva listaArray)(primitiva-array primitiva (eval-rands listaArray env)))
+      
     )
   )
 )
@@ -287,14 +291,14 @@
       (sum-prim () (operaciones args +))
       (minus-prim () (operaciones args -))
       (mult-prim () (operaciones args *))
-      ;(mod-prim () (operaciones args modulo))
-      ;(elevar-prim () (operaciones args expt))
+      (mod-prim () (operaciones args modulo))
+      (elevar-prim () (operaciones args expt))
       (menor-prim () (operaciones args <))
       (mayor-prim () (operaciones args >))
-      ;(menorigual-prim () (operaciones args <=))
-      ;(mayorigual-prim () (operaciones args >=))
-      ;(diferente-prim () (operaciones args (lambda (x y) (not (= x y)))))
-      ;(igual-prim () (operaciones args =))
+      (menorigual-prim () (operaciones args <=))
+      (mayorigual-prim () (operaciones args >=))
+      (diferente-prim () (operaciones args (lambda (x y) (not (= x y)))))
+      (igual-prim () (operaciones args =))
     )
   )
 )
@@ -432,18 +436,14 @@
   )
 )
 
+;***************primitica strings***********************
 
-
-
-
-    
-
-(define apply-primitive-cad
+(define apply-primitive-string
   (lambda (prim args)
     (cases primitivaCadena prim
       (concat-primCad () (unir-cadenas args ""))
       (length-primCad () (string-length (car args)))
-      (index-primCad () (string-ref (car args) (car (cdr args)))) 
+      (index-primCad ()  (string  (string-ref (car args) (cadr args))))
     )
   )
 )
@@ -458,6 +458,28 @@
     )
   )
 )
+
+;**************************primitiva array************************
+(define (primitiva-array prim arg)
+  (cases primitivaArray prim
+    (length-primArr () 
+      (vector-length (car arg)))
+    (index-primArr () 
+      (vector-ref (car arg) (cadr arg)))
+    (slice-primArr () 
+      (letrec ((sub-arreglo
+                (lambda (vect inicio final)
+                  (if (= inicio final)
+                      (cons (vector-ref vect inicio) '())
+                      (cons (vector-ref vect inicio) 
+                            (sub-arreglo vect (+ inicio 1) final))))))
+        (list->vector (sub-arreglo (car arg) (cadr arg) (caddr arg)))))
+    (setlist-primArr () 
+      (vector-set! (car arg) (cadr arg) (caddr arg))
+      (car arg))
+    (else 
+      (eopl:error "Primitiva de array invalida"))))
+      
 
 
 (define eval-rands

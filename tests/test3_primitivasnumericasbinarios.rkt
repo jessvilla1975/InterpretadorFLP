@@ -17,9 +17,7 @@
     "
   )
 )
-(define expected-exp1
-  "b10110"
-)
+
 
 ;test 2
 (define exp2 
@@ -33,9 +31,7 @@
     "
   )
 )
-(define expected-exp2
-  "b110"
-)
+
 
 ;test 2
 (define exp3
@@ -49,14 +45,36 @@
     "
   )
 )
-(define expected-exp3
-  "b100"
+
+(define exp4
+  (scan&parse
+    "
+    let
+    x = b10
+    y = b011
+    in
+      (x pow y)
+    "
+  )
 )
 
-(check-equal? (eval-program exp1) expected-exp1)
-(check-equal? (eval-program exp2) expected-exp2)
-(check-equal? (eval-program exp3) expected-exp3)
+(define exp5
+  (scan&parse
+    "
+    let
+    x = b101
+    y = b011
+    in
+      (x mod y)
+    "
+  )
+)
 
+(check-equal? (eval-program exp1) "b10110")
+(check-equal? (eval-program exp2) "b110")
+(check-equal? (eval-program exp3) "b100")
+(check-equal? (eval-program exp4) "b1000")
+(check-equal? (eval-program exp5) "b10")
 
 
 
