@@ -66,7 +66,7 @@
     (expresion ("while" expresion "{" expresion "}") while-exp)
 
     ;;Switch
-    ;(expresion ("switch" "(" expresion ")" "{" (arbno "case" expresion ":" expresion) "default" ":" expresion "}") switch-exp)
+    (expresion ("switch" "(" expresion ")" "{" (arbno "case" expresion ":" expresion) "default" ":" expresion "}") switch-exp)
 
     ;;Secuenciación y asignación
     (expresion ("begin" expresion (arbno ";" expresion) "end") begin-exp)
@@ -231,7 +231,7 @@
 
       (for-exp (identificador i from until body) (eval-for-expresion identificador i from until body env))
       (while-exp (exp body) (eval-while-expresion exp body env))
-          
+      (switch-exp (exp cases listaExp default) (eval-switch-expresion exp cases listaExp default env))   
       
 
     )
@@ -315,12 +315,20 @@
 
 (define eval-while-expresion
   (lambda (exp body env)
-    (define (iterate)
+    (define (iterar)
       (when (eval-expression exp env)
         (eval-expression body env)
-        (iterate)))
-    (iterate)))
+        (iterar)))
+    (iterar)))
 
+(define eval-switch-expresion
+      (lambda (exp cases listaExp default env)
+        (letrec ((valor (eval-expression exp env)))
+          (let loop ((casos cases) (expresiones listaExp))
+            (cond
+              ((null? casos) (eval-expression default env))
+              ((equal? valor (eval-expression (car casos) env)) (eval-expression (car expresiones) env))
+              (else (loop (cdr casos) (cdr expresiones))))))))
    
 ;***********************primitivas************************************************
 

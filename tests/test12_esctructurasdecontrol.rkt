@@ -47,8 +47,26 @@
   )
 )
 
+;test 4
+(define exp4
+  (scan&parse
+    "
+    let
+      x = 0
+    in
+      begin
+        switch (x) {
+          case 1 : 1
+          case 2 : 2
+          default : 3
+        }
+      end
+    "
+  )
+)
 
 
 (check-equal? (eval-program exp1) 45)
 (check-equal? (eval-program exp2) 20)
 (check-equal? (eval-program exp3) 10)
+(check-equal? (eval-program exp4) 3)
