@@ -62,15 +62,15 @@
 
 
     ;;Iteradores
-    ;(expresion ("for" identificador "from" expresion "until" expresion "by" expresion "do" expresion) for-exp)
+    (expresion ("for" identificador "from" expresion "until" expresion "by" expresion "do" expresion) for-exp)
     ;(expresion ("while" expresion "{" expresion "}") while-exp)
 
     ;;Switch
     ;(expresion ("switch" "(" expresion ")" "{" (arbno "case" expresion ":" expresion) "default" ":" expresion "}") switch-exp)
 
     ;;Secuenciación y asignación
-    ;(expresion ("begin" expresion (arbno ";" expresion) "end") begin-exp)
-    ;(expresion ("set" identificador "=" expresion) set-exp)
+    (expresion ("begin" expresion (arbno ";" expresion) "end") begin-exp)
+    (expresion ("set" identificador "=" expresion) set-exp)
 
     ;;Funciones
     ;;; (expresion ("func" "(" (separated-list identificador ",") ")" expresion) func-exp)
@@ -209,12 +209,7 @@
       (lista-exp (args) (map (lambda (x) (eval-expression x env)) args))
       (cons-exp (exp1 exp2) (cons (eval-expression exp1 env) (eval-expression exp2 env)))
       (empty-list-exp () '())
-      
-      (if-exp (exp1 exp2 exp3)
-              (if (eval-expression exp1 env)
-                  (eval-expression exp2 env)
-                  (eval-expression exp3 env)))
-
+      (if-exp (exp1 exp2 exp3)(eval-if-expresion exp1 exp2 exp3 env))
       (decl-exp (var-decl) (eval-var-decl var-decl env))
       (prim-num-exp (exp1 primitiva exp2)(apply-primitive primitiva (list (eval-expression exp1 env) (eval-expression exp2 env))))
       (prim-bool-exp (primitivaBooleana args) (apply-primitive-bool primitivaBooleana (eval-rands args env)))
@@ -222,7 +217,21 @@
       (prim-list-exp (primitivaListas arg) (apply-primitive-list primitivaListas (eval-rand arg env)))
       (array-exp (lista) (list->vector (eval-rands lista env)))
       (prim-array-exp (primitiva listaArray)(primitiva-array primitiva (eval-rands listaArray env)))
+      (set-exp (id rhs-exp)
+               (begin
+                 (referencia
+                  (apply-env-ref env id)
+                  (eval-expression rhs-exp env))
+                ))
+
+      (begin-exp (exp exps) 
+                  (let ((acc (eval-expression exp env)))  
+                      (cond ((null? exps) acc)           
+                    (else (eval-expression (car exps) env)))))
+                    
+      (for-exp (identificador i from until body) (eval-for-expresion identificador i from until body env))
       
+
     )
   )
 )
@@ -276,13 +285,31 @@
       (lvar-exp (ids rands body) 
                 (let ((args (eval-rands rands env)))
                  (eval-expression body(extend-env ids args env))))
-      (let-exp (ids rands body) 
-                (let ((args (eval-rands rands env)))(eval-expression body(extend-env ids args env))))
+      (let-exp (ids rands body)
+               (let ((args (eval-rands rands env)))
+                 (eval-expression body
+                                  (extend-env ids args env))))
       (else (eopl:error 'eval-var-decl "Invalid variable declaration"))
     )
   )
 )
+(define eval-if-expresion
+  (lambda (exp1 exp2 exp3 env)
+    (if (eval-expression exp1 env)
+        (eval-expression exp2 env)
+        (eval-expression exp3 env))))
 
+(define eval-for-expresion
+  (lambda (identificador i from until body env)
+    (let ((inicio (eval-expression i env))
+              (fin (eval-expression from env))
+              (iterar (eval-expression until env))
+            )
+          (let loop ((i inicio))
+            (when (< i fin)
+              (eval-expression body (extend-env (list identificador) (list i) env))
+              (loop (+ i iterar)))))
+      ))
 ;***********************primitivas************************************************
 
 (define apply-primitive
@@ -310,7 +337,7 @@
         ((and (string? (car args)) (string? (cadr args)))
          (let ((operand1BaseInfo (tipoBase (car args)))
                (operand2BaseInfo (tipoBase (cadr args))))
-           (cond ((= (cadr operand1BaseInfo) (cadr operand2BaseInfo))  ; Check for matching bases
+           (cond ((= (cadr operand1BaseInfo) (cadr operand2BaseInfo))  
                   (let ((result (operation
                                  (ConvertirBase-Decimal (car operand1BaseInfo) (cadr operand1BaseInfo))
                                  (ConvertirBase-Decimal (car operand2BaseInfo) (cadr operand2BaseInfo)))))
@@ -591,7 +618,7 @@
       (a-ref (pos vec)
              (vector-ref vec pos)))))
 
-(define setref!
+(define referencia
   (lambda (ref val)
     (primitive-setref! ref val)))
 
@@ -620,6 +647,16 @@
               (if (number? list-index-r)
                 (+ list-index-r 1)
                 #f))))))
+
+; ********************funciones auxiliares************************
+(define let-binding?
+  (lambda (env sym)
+    (cases environment env
+      (empty-env-record () #f)
+      (extended-env-record (syms vals env)
+                           (if (memq sym syms)
+                               #t
+                               (let-binding? env sym))))))
 ;************************pruebas simples****************************
 
 

@@ -11,4 +11,6 @@ sh test.sh 7 listas
 sh test.sh 8 primitivaslistas
 sh test.sh 9 primitivascadenas
 sh test.sh 10 primitivasarray
+sh test.sh 11 ligaduras
+sh test.sh 12 esctructurasdecontrol
 ```
