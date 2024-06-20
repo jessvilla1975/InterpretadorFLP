@@ -63,7 +63,7 @@
 
     ;;Iteradores
     (expresion ("for" identificador "from" expresion "until" expresion "by" expresion "do" expresion) for-exp)
-    ;(expresion ("while" expresion "{" expresion "}") while-exp)
+    (expresion ("while" expresion "{" expresion "}") while-exp)
 
     ;;Switch
     ;(expresion ("switch" "(" expresion ")" "{" (arbno "case" expresion ":" expresion) "default" ":" expresion "}") switch-exp)
@@ -228,8 +228,10 @@
                   (let ((acc (eval-expression exp env)))  
                       (cond ((null? exps) acc)           
                     (else (eval-expression (car exps) env)))))
-                    
+
       (for-exp (identificador i from until body) (eval-for-expresion identificador i from until body env))
+      (while-exp (exp body) (eval-while-expresion exp body env))
+          
       
 
     )
@@ -310,6 +312,16 @@
               (eval-expression body (extend-env (list identificador) (list i) env))
               (loop (+ i iterar)))))
       ))
+
+(define eval-while-expresion
+  (lambda (exp body env)
+    (define (iterate)
+      (when (eval-expression exp env)
+        (eval-expression body env)
+        (iterate)))
+    (iterate)))
+
+   
 ;***********************primitivas************************************************
 
 (define apply-primitive

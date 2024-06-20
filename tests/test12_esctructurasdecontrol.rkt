@@ -31,6 +31,24 @@
     "
   )
 )
+;test3
+(define exp3
+  (scan&parse
+    "let
+      x = 0
+      in
+        begin
+          while (x < 10) {
+            set x = (x + 1)
+          };
+          x
+        end
+    "
+  )
+)
+
+
 
 (check-equal? (eval-program exp1) 45)
 (check-equal? (eval-program exp2) 20)
+(check-equal? (eval-program exp3) 10)
