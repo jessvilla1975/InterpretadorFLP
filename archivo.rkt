@@ -73,8 +73,8 @@
     (expresion ("set" identificador "=" expresion) set-exp)
 
     ;;Funciones
-    ;;; (expresion ("func" "(" (separated-list identificador ",") ")" expresion) func-exp)
-    ;;; (expresion ("call" expresion "(" (separated-list expresion ",") ")") call-exp)
+    ;(expresion ("func" "(" (separated-list identificador ",") ")" expresion) func-exp)
+    ;(expresion ("call" expresion "(" (separated-list expresion ",") ")") call-exp)
 
     ;;Instanciación y uso de estructuras
     ;;; (expresion ("new" identificador "(" (separated-list expresion ",") ")") new-struct-exp)
@@ -133,7 +133,8 @@
     ;;Variables
     (var-decl ("var" (arbno identificador "=" expresion) "in" expresion) lvar-exp)
     (var-decl ("let" (arbno identificador "=" expresion) "in" expresion) let-exp)
-    
+    ;void
+    (expresion ("void") void-exp)
     ;;Estructuras de datos
     (struct-decl ("struct" identificador "{" (arbno identificador) "}") struct-exp)
 
@@ -202,6 +203,7 @@
 (define eval-expression
   (lambda (exp env)
     (cases expresion exp
+      (void-exp () '())
       (num-exp (numero-exp) (eval-num-expresion numero-exp env))
       (bool-exp (bool-expresion) (eval-bool-expresion bool-expresion env))
       (var-exp (identificador) (apply-env env identificador))
@@ -217,6 +219,7 @@
       (prim-list-exp (primitivaListas arg) (apply-primitive-list primitivaListas (eval-rand arg env)))
       (array-exp (lista) (list->vector (eval-rands lista env)))
       (prim-array-exp (primitiva listaArray)(primitiva-array primitiva (eval-rands listaArray env)))
+      
       (set-exp (id rhs-exp)
                (begin
                  (referencia
@@ -233,7 +236,6 @@
       (while-exp (exp body) (eval-while-expresion exp body env))
       (switch-exp (exp cases listaExp default) (eval-switch-expresion exp cases listaExp default env))   
       
-
     )
   )
 )
@@ -514,18 +516,18 @@
     (index-primArr () 
       (vector-ref (car arg) (cadr arg)))
     (slice-primArr () 
-      (letrec ((sub-arreglo
-                (lambda (vect inicio final)
+      (letrec ((lista             (lambda (vect inicio final)
                   (if (= inicio final)
-                      (cons (vector-ref vect inicio) '())
-                      (cons (vector-ref vect inicio) 
-                            (sub-arreglo vect (+ inicio 1) final))))))
-        (list->vector (sub-arreglo (car arg) (cadr arg) (caddr arg)))))
+                      (list (vector-ref vect inicio))
+                      (cons (vector-ref vect inicio)
+                            (lista vect (+ inicio 1) final))))))
+        (list->vector (lista (car arg) (cadr arg) (caddr arg)))))
     (setlist-primArr () 
       (vector-set! (car arg) (cadr arg) (caddr arg))
       (car arg))
     (else 
       (eopl:error "Primitiva de array invalida"))))
+
       
 
 
@@ -677,7 +679,10 @@
                            (if (memq sym syms)
                                #t
                                (let-binding? env sym))))))
+
+
 ;************************pruebas simples****************************
+
 
 
 ;(interpretador)

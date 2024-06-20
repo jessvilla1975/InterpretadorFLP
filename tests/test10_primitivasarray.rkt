@@ -40,9 +40,20 @@
   )
 )
 
+;test 4
+(define exp4
+  (scan&parse
+    "
+    let
+    k = array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+    in
+      slice(k, 2 , 5)
+    "
+  )
+)
 
 (check-equal? (eval-program exp1) 5)
 (check-equal? (eval-program exp2) 3)
-(check-equal? (eval-program exp3) '#(1 2 10 4 5)) ;corregir parte del codigo
-
+(check-equal? (eval-program exp3) '#(1 2 10 4 5)) 
+(check-equal? (eval-program exp4) '#(3 4 5 6)) 
 
