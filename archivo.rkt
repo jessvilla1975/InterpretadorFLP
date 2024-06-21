@@ -686,5 +686,16 @@
 
 
 ;(interpretador)
+(define exp1 
+  (scan&parse
+    "
+    let
+    s = \"hola mundo cruel\"
+    in
+      string-length(s)
+    "
+  )
+)
+(display (eval-program exp1))
 
 (provide (all-defined-out))
